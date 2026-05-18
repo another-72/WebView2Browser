@@ -1,7 +1,7 @@
 name: Cloud Build Binary
 
 on:
-  workflow_dispatch: # Allows you to trigger the build manually with a button click
+  workflow_dispatch:
 
 jobs:
   build:
@@ -11,11 +11,14 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    - name: Setup NuGet CLI
+      uses: nuget/setup-nuget@v2
+
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    - name: Restore NuGet Dependencies
-      run: msbuild /t:restore WebView2Browser.sln
+    - name: Restore NuGet Packages (Fix for C++ Win32)
+      run: nuget restore WebView2Browser.sln
 
     - name: Compile Optimized x64 Binary
       run: msbuild WebView2Browser.sln /p:Configuration=Release /p:Platform=x64
