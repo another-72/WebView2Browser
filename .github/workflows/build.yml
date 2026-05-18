@@ -5,18 +5,12 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    # THE FIX: Lock the server to the 2022 image which has the legacy v142 components pre-installed.
+    runs-on: windows-2022 
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
-
-    - name: Install Missing VS 2019 ATL Component
-      # This silently installs the missing headers onto the GitHub server
-      run: |
-        $installer = "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe"
-        $installPath = "C:\Program Files\Microsoft Visual Studio\2022\Enterprise"
-        Start-Process -FilePath $installer -ArgumentList "modify --installPath `"$installPath`" --add Microsoft.VisualStudio.Component.VC.v142.ATL --quiet --norestart" -Wait -NoNewWindow
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
@@ -27,8 +21,8 @@ jobs:
     - name: Restore NuGet Packages
       run: nuget restore WebViewBrowserApp.sln
 
-    - name: Compile Optimized x64 Binary (Native v142)
-      # We removed the toolset override, letting it compile natively
+    - name: Compile Optimized x64 Binary
+      # No toolset overrides, no installer hacks. Just a clean native build.
       run: msbuild WebViewBrowserApp.sln /p:Configuration=Release /p:Platform=x64
 
     - name: Package Executable Asset
