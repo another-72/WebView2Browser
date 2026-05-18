@@ -5,8 +5,7 @@ on:
 
 jobs:
   build:
-    # THE FIX: Lock the server to the 2022 image which has the legacy v142 components pre-installed.
-    runs-on: windows-2022 
+    runs-on: windows-latest
 
     steps:
     - name: Checkout Code
@@ -21,9 +20,14 @@ jobs:
     - name: Restore NuGet Packages
       run: nuget restore WebViewBrowserApp.sln
 
-    - name: Compile Optimized x64 Binary
-      # No toolset overrides, no installer hacks. Just a clean native build.
-      run: msbuild WebViewBrowserApp.sln /p:Configuration=Release /p:Platform=x64
+    - name: Hack the NuGet Package (Force Modern Compiler Support)
+      # This intercepts the old package and rewrites its version checks from v141/v142 to v143
+      run: |
+        $targetFile = "packages\cpprestsdk.v141.2.10.12.1\build\native\cpprestsdk.v141.targets"
+        (Get-Content $targetFile) -replace 'v141', 'v143' -replace 'v142', 'v143' | Set-Content $targetFile
+
+    - name: Compile Optimized x64 Binary (Forced Modern v143)
+      run: msbuild WebViewBrowserApp.sln /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143
 
     - name: Package Executable Asset
       uses: actions/upload-artifact@v4
