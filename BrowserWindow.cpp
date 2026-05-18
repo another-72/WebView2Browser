@@ -6,6 +6,13 @@
 #include "shlobj.h"
 #include <Urlmon.h>
 #pragma comment (lib, "Urlmon.lib")
+#include <dwmapi.h>
+#pragma comment(lib, "dwmapi.lib") // Tells the compiler to link the DWM library
+
+// Define the dark mode flag just in case the cloud server's SDK is missing it
+#ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
+#define DWMWA_USE_IMMERSIVE_DARK_MODE 20
+#endif
 
 using namespace Microsoft::WRL;
 
@@ -174,6 +181,12 @@ BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
     SetWindowLongPtr(m_hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
     UpdateMinWindowSize();
+    // --- CUSTOM APPLICATION TITLE ---
+    SetWindowText(m_hWnd, L"Falkon");
+    // --- FORCE NATIVE TITLE BAR TO DARK MODE ---
+    BOOL isDarkMode = TRUE;
+    DwmSetWindowAttribute(m_hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &isDarkMode, sizeof(isDarkMode));
+    // -------------------------------------------
     ShowWindow(m_hWnd, nCmdShow);
     UpdateWindow(m_hWnd);
 
