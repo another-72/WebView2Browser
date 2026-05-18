@@ -1,48 +1,53 @@
 html, body {
     height: 70px;
 }
-/* --- BULLETPROOF DARK MODE OVERRIDE --- */
+/* --- REAL DARK MODE OVERRIDE (MATCHED TO JS) --- */
 
-/* 1. Nuke the light gray background behind the address bar */
-body, html, #controls {
+/* 1. Main Backgrounds */
+body, html, #controls-bar, #tabs-strip {
     background-color: #1a1a1a !important;
 }
 
-/* 2. Fix the Inactive Tabs (Medium-dark gray) */
+/* 2. Inactive Tabs */
 .tab {
     background-color: #2b2b2b !important;
-    border: 1px solid #333 !important;
+    border-right: 1px solid #333 !important;
     border-bottom: 1px solid #444 !important;
 }
 
-/* 3. Fix the Active Tab (Lighter gray to stand out cleanly) */
-.tab.active, .tab[active] {
-    background-color: #4a4a4a !important; /* Lighter so it pops */
+/* 3. Active Tab */
+.tab-active {
+    background-color: #4a4a4a !important;
     border: 1px solid #666 !important;
-    border-bottom: 2px solid #0078D7 !important; /* Clean blue accent line */
+    border-bottom: 2px solid #0078D7 !important;
 }
 
-/* 4. Force all text inside ALL tabs to be white */
-.tab, .tab * {
+/* 4. Force all text inside tabs to be white */
+.tab span, .tab-active span, #plus-label {
     color: #ffffff !important;
 }
 
-/* 5. Fix the Address Bar text box */
-input, input[type="text"], #address-bar-text {
+/* 5. Address Bar Container */
+#address-bar-container {
     background-color: #121212 !important;
-    color: #ffffff !important;
     border: 1px solid #555 !important;
 }
 
-/* 6. Fix the New Tab '+' Button */
-#new-tab {
-    background-color: transparent !important;
+/* 6. Address Bar Text Input */
+#address-field {
+    background-color: #121212 !important;
     color: #ffffff !important;
-    font-size: 16px !important;
-    font-weight: bold !important;
 }
 
-/* 7. Invert the black navigation icons to white */
-#controls img {
+/* 7. New Tab '+' Button */
+#btn-new-tab {
+    background-color: transparent !important;
+}
+
+/* 8. Invert black icons to white (but keep website favicons normal) */
+img {
     filter: invert(1) !important;
+}
+#img-favicon {
+    filter: none !important; 
 }
