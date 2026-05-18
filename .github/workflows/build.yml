@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
     - name: Checkout Code
@@ -21,7 +21,8 @@ jobs:
       run: nuget restore WebView2Browser.sln
 
     - name: Compile Optimized x64 Binary
-      run: msbuild WebView2Browser.sln /p:Configuration=Release /p:Platform=x64
+      # Forcing the modern 2022 server to use the 2019 C++ toolset (v142)
+      run: msbuild WebView2Browser.sln /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v142
 
     - name: Package Executable Asset
       uses: actions/upload-artifact@v4
