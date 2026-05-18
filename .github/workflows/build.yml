@@ -20,8 +20,9 @@ jobs:
     - name: Restore NuGet Packages
       run: nuget restore WebViewBrowserApp.sln
 
-    - name: Compile Optimized x64 Binary
-      run: msbuild WebViewBrowserApp.sln /p:Configuration=Release /p:Platform=x64
+    - name: Compile Optimized x64 Binary (Forced Modern Toolset)
+      # We added /p:PlatformToolset=v143 to force the modern VS 2022 headers
+      run: msbuild WebViewBrowserApp.sln /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v143
 
     - name: Package Executable Asset
       uses: actions/upload-artifact@v4
