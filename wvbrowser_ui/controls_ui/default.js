@@ -239,7 +239,7 @@ function hasScheme(query) {
 }
 
 function getSearchURI(query) {
-    return `https://www.bing.com/search?q=${encodeURIComponent(query)}`;
+    return `https://search.brave.com/search?q=${encodeURIComponent(query)}`;
 }
 
 function closeWindow() {
