@@ -52,3 +52,11 @@
     font-size: 0.8em;
     color: gray;
 }
+
+/* --- DARK MODE OVERRIDE --- */
+.entry:hover {
+    background-color: #3c3c3c !important;
+}
+.settings-entry {
+    color: #ffffff !important;
+}

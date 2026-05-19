@@ -1,53 +1,73 @@
 html, body {
     height: 70px;
+    overscroll-behavior: none !important;
 }
-/* --- REAL DARK MODE OVERRIDE (MATCHED TO JS) --- */
 
-/* 1. Main Backgrounds */
-body, html, #controls-bar, #tabs-strip {
+/* --- REAL DARK MODE OVERRIDE --- */
+
+/* Main Backgrounds */
+body,
+html,
+#controls-bar,
+#tabs-strip {
     background-color: #1a1a1a !important;
 }
 
-/* 2. Inactive Tabs */
+/* Remove white lines from tabs */
 .tab {
     background-color: #2b2b2b !important;
-    border-right: 1px solid #333 !important;
-    border-bottom: 1px solid #444 !important;
+    border: none !important; /* Kills the white border */
+    border-right: 1px solid #1a1a1a !important; /* Adds a seamless dark separator */
 }
 
-/* 3. Active Tab */
+/* Active Tab */
 .tab-active {
     background-color: #4a4a4a !important;
-    border: 1px solid #666 !important;
-    border-bottom: 2px solid #0078D7 !important;
+    border: none !important; /* Kills the white border */
+    border-right: 1px solid #1a1a1a !important;
+    border-bottom: 2px solid #0078d7 !important;
 }
 
-/* 4. Force all text inside tabs to be white */
-.tab span, .tab-active span, #plus-label {
+/* Text Colors */
+.tab span,
+.tab-active span,
+#plus-label {
     color: #ffffff !important;
 }
 
-/* 5. Address Bar Container */
+/* Address Bar */
 #address-bar-container {
     background-color: #121212 !important;
-    border: 1px solid #555 !important;
+    border: 1px solid #444 !important;
 }
-
-/* 6. Address Bar Text Input */
 #address-field {
     background-color: #121212 !important;
     color: #ffffff !important;
 }
 
-/* 7. New Tab '+' Button */
+/* New Tab Button */
 #btn-new-tab {
     background-color: transparent !important;
 }
 
-/* 8. Invert black icons to white (but keep website favicons normal) */
-img {
+/* -------------------------------------------------- */
+/* FIX INVISIBLE ICONS (Back, Forward, Refresh, etc.) */
+/* -------------------------------------------------- */
+.btn,
+.btn-disabled,
+.btn-cancel,
+.btn-active,
+.icn {
     filter: invert(1) !important;
 }
-#img-favicon {
-    filter: none !important; 
+
+/* Prevent the website icon (favicon) from being inverted */
+#icn-favicon,
+#icn-favicon img {
+    filter: none !important;
+}
+
+#controls-bar, #tabs-strip {
+    border-bottom: none !important;
+    box-shadow: none !important;
 }
