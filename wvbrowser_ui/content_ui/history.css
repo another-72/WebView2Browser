@@ -1,3 +1,9 @@
+html, body {
+    background-color: #1a1a1a !important;
+    overscroll-behavior: none !important;
+    height: 100%;
+    overflow-x: hidden;
+}
 .header-date {
     font-weight: 400;
     font-size: 14px;
