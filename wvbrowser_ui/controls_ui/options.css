@@ -1,4 +1,11 @@
 html, body {
+    background-color: #1a1a1a !important;
+    overscroll-behavior: none !important;
+    height: 100%;
+    overflow-x: hidden;
+}
+
+html, body {
     width: 200px;
     height: 107px;
 }
