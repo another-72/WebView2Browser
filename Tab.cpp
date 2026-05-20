@@ -29,6 +29,15 @@ HRESULT Tab::Init(ICoreWebView2Environment* env, bool shouldBeActive)
             return result;
         }
         m_contentController = host;
+
+        // --- NEW: Force the WebView2 background to dark gray to stop white flashes ---
+        Microsoft::WRL::ComPtr<ICoreWebView2Controller2> controller2;
+        if (SUCCEEDED(m_contentController.As(&controller2))) {
+            COREWEBVIEW2_COLOR darkColor = { 255, 26, 26, 26 }; // #1a1a1a
+            controller2->put_DefaultBackgroundColor(darkColor);
+        }
+        // -----------------------------------------------------------------------------
+
         BrowserWindow::CheckFailure(m_contentController->get_CoreWebView2(&m_contentWebView), L"");
         BrowserWindow* browserWindow = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(m_parentHWnd, GWLP_USERDATA));
         RETURN_IF_FAILED(m_contentWebView->add_WebMessageReceived(m_messageBroker.Get(), &m_messageBrokerToken));
@@ -78,6 +87,16 @@ HRESULT Tab::Init(ICoreWebView2Environment* env, bool shouldBeActive)
             BrowserWindow::CheckFailure(browserWindow->HandleTabSecurityUpdate(m_tabId, webview, args), L"Can't udpate security icon");
             return S_OK;
         }).Get(), &m_securityUpdateToken));
+
+
+        // --- NEW: Forcefully kill overscroll on every website loaded ---
+        RETURN_IF_FAILED(m_contentWebView->AddScriptToExecuteOnDocumentCreatedAsync(
+            L"document.documentElement.style.overscrollBehavior = 'none';"
+            L"document.body.style.overscrollBehavior = 'none';",
+            nullptr
+        ));
+        // ---------------------------------------------------------------
+
 
         RETURN_IF_FAILED(m_contentWebView->Navigate(L"https://search.brave.com"));
         browserWindow->HandleTabCreated(m_tabId, shouldBeActive);
