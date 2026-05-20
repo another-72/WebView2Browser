@@ -1,7 +1,18 @@
-html, body {
+/* 1. Lock the root window layout frame */
+html {
     background-color: #1a1a1a !important;
     overscroll-behavior: none !important;
     height: 100%;
+    overflow: hidden; /* This permanently drops the outer ghost scrollbar */
+}
+
+/* 2. Allow the body container to scroll naturally */
+body {
+    background-color: #1a1a1a !important;
+    overscroll-behavior: none !important;
+    height: 100%;
+    margin: 0;
+    overflow-y: auto; /* This acts as your single, clean scroll track */
     overflow-x: hidden;
 }
 

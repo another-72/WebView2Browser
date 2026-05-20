@@ -1,8 +1,9 @@
 html, body {
     background-color: #1a1a1a !important;
     overscroll-behavior: none !important;
-    height: 100%;
-    overflow-x: hidden;
+    
+    /* Lock it down completely so it never spawns a scrollbar */
+    overflow: hidden !important; 
 }
 
 html, body {
