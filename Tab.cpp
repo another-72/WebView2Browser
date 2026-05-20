@@ -89,13 +89,16 @@ HRESULT Tab::Init(ICoreWebView2Environment* env, bool shouldBeActive)
         }).Get(), &m_securityUpdateToken));
 
 
-        // --- NEW: Forcefully kill overscroll on every website loaded ---
+        // --- NEW: Forcefully kill overscroll and white canvas flashes globally ---
         RETURN_IF_FAILED(m_contentWebView->AddScriptToExecuteOnDocumentCreated(
-            L"document.documentElement.style.overscrollBehavior = 'none';"
-            L"document.body.style.overscrollBehavior = 'none';",
+            L"(() => {"
+            L"  const style = document.createElement('style');"
+            L"  style.textContent = 'html, body { overscroll-behavior: none !important; background-color: #1a1a1a !important; }';"
+            L"  if (document.documentElement) { document.documentElement.appendChild(style); }"
+            L"})();",
             nullptr
         ));
-        // ---------------------------------------------------------------
+        // -----------------------------------------------------------------------
 
 
         RETURN_IF_FAILED(m_contentWebView->Navigate(L"https://search.brave.com"));
