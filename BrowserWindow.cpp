@@ -8,6 +8,7 @@
 #pragma comment (lib, "Urlmon.lib")
 #include <dwmapi.h>
 #pragma comment(lib, "dwmapi.lib") // Tells the compiler to link the DWM library
+#include <WebView2EnvironmentOptions.h> // REQUIRED FOR ENGINE FLAGS
 
 // Define the dark mode flag just in case the cloud server's SDK is missing it
 #ifndef DWMWA_USE_IMMERSIVE_DARK_MODE
@@ -52,19 +53,12 @@ ATOM BrowserWindow::RegisterClass(_In_ HINSTANCE hInstance)
 //
 //  PURPOSE: Redirect messages to approriate instance or call default proc
 //
-//  WM_COMMAND  - process the application menu
-//  WM_PAINT    - Paint the main window
-//  WM_DESTROY  - post a quit message and return
-//
-//
 LRESULT CALLBACK BrowserWindow::WndProcStatic(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    // Get the ptr to the BrowserWindow instance who created this hWnd.
-    // The pointer was set when the hWnd was created during InitInstance.
     BrowserWindow* browser_window = reinterpret_cast<BrowserWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
     if (browser_window != nullptr)
     {
-        return browser_window->WndProc(hWnd, message, wParam, lParam);  // Forward message to instance-aware WndProc
+        return browser_window->WndProc(hWnd, message, wParam, lParam);
     }
     else
     {
@@ -75,16 +69,8 @@ LRESULT CALLBACK BrowserWindow::WndProcStatic(HWND hWnd, UINT message, WPARAM wP
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
-//  PURPOSE: Processes messages for each browser window instance.
-//
-//  WM_COMMAND  - process the application menu
-//  WM_PAINT    - Paint the main window
-//  WM_DESTROY  - post a quit message and return
-//
-//
 LRESULT CALLBACK BrowserWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-
     switch (message)
     {
     case WM_GETMINMAXINFO:
@@ -141,8 +127,6 @@ LRESULT CALLBACK BrowserWindow::WndProc(HWND hWnd, UINT message, WPARAM wParam, 
 
 BOOL BrowserWindow::LaunchWindow(_In_ HINSTANCE hInstance, _In_ int nCmdShow)
 {
-    // BrowserWindow keeps a reference to itself in its host window and will
-    // delete itself when the window is destroyed.
     BrowserWindow* window = new BrowserWindow();
     if (!window->InitInstance(hInstance, nCmdShow))
     {
@@ -152,19 +136,9 @@ BOOL BrowserWindow::LaunchWindow(_In_ HINSTANCE hInstance, _In_ int nCmdShow)
     return TRUE;
 }
 
-//
-//   FUNCTION: InitInstance(HINSTANCE, int)
-//
-//   PURPOSE: Saves instance handle and creates main window
-//
-//   COMMENTS:
-//
-//        In this function, we save the instance handle in a global variable and
-//        create and display the main program window.
-//
 BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-    m_hInst = hInstance; // Store app instance handle
+    m_hInst = hInstance;
     LoadStringW(m_hInst, IDS_APP_TITLE, s_title, MAX_LOADSTRING);
 
     SetUIMessageBroker();
@@ -177,7 +151,6 @@ BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
         return FALSE;
     }
 
-    // Make the BrowserWindow instance ptr available through the hWnd
     SetWindowLongPtr(m_hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
     UpdateMinWindowSize();
@@ -190,17 +163,15 @@ BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
     ShowWindow(m_hWnd, nCmdShow);
     UpdateWindow(m_hWnd);
 
-    // Get directory for user data. This will be kept separated from the
-    // directory for the browser UI data.
     std::wstring userDataDirectory = GetAppDataDirectory();
     userDataDirectory.append(L"\\User Data");
 
-    // Create WebView environment for web content requested by the user. All
-    // tabs will be created from this environment and kept isolated from the
-    // browser UI. This enviroment is created first so the UI can request new
-    // tabs when it's ready.
+    // --- NEW: Create options and force dark mode / disable overscroll for main web content ---
+    auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
+    options->put_AdditionalBrowserArguments(L"--disable-features=ElasticOverscroll,OverscrollHistoryNavigation --force-dark-mode --enable-features=WebUIDarkMode");
+
     HRESULT hr = CreateCoreWebView2EnvironmentWithOptions(nullptr, userDataDirectory.c_str(),
-        nullptr, Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+        options.Get(), Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT
     {
         RETURN_IF_FAILED(result);
@@ -227,17 +198,17 @@ BOOL BrowserWindow::InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 HRESULT BrowserWindow::InitUIWebViews()
 {
-    // Get data directory for browser UI data
     std::wstring browserDataDirectory = GetAppDataDirectory();
     browserDataDirectory.append(L"\\Browser Data");
 
-    // Create WebView environment for browser UI. A separate data directory is
-    // used to isolate the browser UI from web content requested by the user.
+    // --- NEW: Apply the same strict rendering rules to the UI frame ---
+    auto uiOptions = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
+    uiOptions->put_AdditionalBrowserArguments(L"--disable-features=ElasticOverscroll,OverscrollHistoryNavigation --force-dark-mode --enable-features=WebUIDarkMode");
+
     return CreateCoreWebView2EnvironmentWithOptions(nullptr, browserDataDirectory.c_str(),
-        nullptr, Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+        uiOptions.Get(), Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
             [this](HRESULT result, ICoreWebView2Environment* env) -> HRESULT
     {
-        // Environment is ready, create the WebView
         m_uiEnv = env;
 
         RETURN_IF_FAILED(CreateBrowserControlsWebView());
@@ -257,7 +228,6 @@ HRESULT BrowserWindow::CreateBrowserControlsWebView()
             OutputDebugString(L"Controls WebView creation failed\n");
             return result;
         }
-        // WebView created
         m_controlsController = host;
         CheckFailure(m_controlsController->get_CoreWebView2(&m_controlsWebView), L"");
 
@@ -293,7 +263,6 @@ HRESULT BrowserWindow::CreateBrowserOptionsWebView()
             OutputDebugString(L"Options WebView creation failed\n");
             return result;
         }
-        // WebView created
         m_optionsController = host;
         CheckFailure(m_optionsController->get_CoreWebView2(&m_optionsWebView), L"");
 
@@ -309,11 +278,9 @@ HRESULT BrowserWindow::CreateBrowserOptionsWebView()
         }
         ).Get(), &m_optionsZoomToken));
 
-        // Hide by default
         RETURN_IF_FAILED(m_optionsController->put_IsVisible(FALSE));
         RETURN_IF_FAILED(m_optionsWebView->add_WebMessageReceived(m_uiMessageBroker.Get(), &m_optionsUIMessageBrokerToken));
 
-        // Hide menu when focus is lost
         RETURN_IF_FAILED(m_optionsController->add_LostFocus(Callback<ICoreWebView2FocusChangedEventHandler>(
             [this](ICoreWebView2Controller* sender, IUnknown* args) -> HRESULT
         {
@@ -335,15 +302,13 @@ HRESULT BrowserWindow::CreateBrowserOptionsWebView()
     }).Get());
 }
 
-// Set the message broker for the UI webview. This will capture messages from ui web content.
-// Lambda is used to capture the instance while satisfying Microsoft::WRL::Callback<T>()
 void BrowserWindow::SetUIMessageBroker()
 {
     m_uiMessageBroker = Callback<ICoreWebView2WebMessageReceivedEventHandler>(
         [this](ICoreWebView2* webview, ICoreWebView2WebMessageReceivedEventArgs* eventArgs) -> HRESULT
     {
         wil::unique_cotaskmem_string jsonString;
-        CheckFailure(eventArgs->get_WebMessageAsJson(&jsonString), L"");  // Get the message from the UI WebView as JSON formatted string
+        CheckFailure(eventArgs->get_WebMessageAsJson(&jsonString), L"");
         web::json::value jsonObj = web::json::value::parse(jsonString.get());
 
         if (!jsonObj.has_field(L"message"))
@@ -388,7 +353,6 @@ void BrowserWindow::SetUIMessageBroker()
 
             if (uri.substr(0, browserScheme.size()).compare(browserScheme) == 0)
             {
-                // No encoded search URI
                 std::wstring path = uri.substr(browserScheme.size());
                 if (path.compare(L"favorites") == 0 ||
                     path.compare(L"settings") == 0 ||
@@ -470,7 +434,6 @@ void BrowserWindow::SetUIMessageBroker()
         case MG_GET_SETTINGS:
         case MG_GET_HISTORY:
         {
-            // Forward back to requesting tab
             size_t tabId = args.at(L"tabId").as_number().to_uint32();
             jsonObj[L"args"].erase(L"tabId");
 
@@ -555,7 +518,7 @@ HRESULT BrowserWindow::HandleTabHistoryUpdate(size_t tabId, ICoreWebView2* webvi
 {
     wil::unique_cotaskmem_string source;
     RETURN_IF_FAILED(webview->get_Source(&source));
-    
+
     web::json::value jsonObj = web::json::value::parse(L"{}");
     jsonObj[L"message"] = web::json::value(MG_UPDATE_URI);
     jsonObj[L"args"] = web::json::value::parse(L"{}");
@@ -588,47 +551,38 @@ HRESULT BrowserWindow::HandleTabNavStarting(size_t tabId, ICoreWebView2* webview
 HRESULT BrowserWindow::HandleTabNavCompleted(size_t tabId, ICoreWebView2* webview, ICoreWebView2NavigationCompletedEventArgs* args)
 {
     std::wstring getTitleScript(
-        // Look for a title tag
         L"(() => {"
         L"    const titleTag = document.getElementsByTagName('title')[0];"
         L"    if (titleTag) {"
         L"        return titleTag.innerHTML;"
         L"    }"
-        // No title tag, look for the file name
         L"    pathname = window.location.pathname;"
         L"    var filename = pathname.split('/').pop();"
         L"    if (filename) {"
         L"        return filename;"
         L"    }"
-        // No file name, look for the hostname
         L"    const hostname =  window.location.hostname;"
         L"    if (hostname) {"
         L"        return hostname;"
         L"    }"
-        // Fallback: let the UI use a generic title
         L"    return '';"
         L"})();"
     );
 
     std::wstring getFaviconURI(
         L"(() => {"
-        // Let the UI use a fallback favicon
         L"    let faviconURI = '';"
         L"    let links = document.getElementsByTagName('link');"
-        // Test each link for a favicon
         L"    Array.from(links).map(element => {"
         L"        let rel = element.rel;"
-        // Favicon is declared, try to get the href
         L"        if (rel && (rel == 'shortcut icon' || rel == 'icon')) {"
         L"            if (!element.href) {"
         L"                return;"
         L"            }"
-        // href to icon found, check it's full URI
         L"            try {"
         L"                let urlParser = new URL(element.href);"
         L"                faviconURI = urlParser.href;"
         L"            } catch(e) {"
-        // Try prepending origin
         L"                let origin = window.location.origin;"
         L"                let faviconLocation = `${origin}/${element.href}`;"
         L"                try {"
@@ -732,7 +686,6 @@ HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, ICoreWebView2* web
     case MG_REMOVE_FAVORITE:
     {
         std::wstring fileURI = GetFilePathAsURI(GetFullPathFor(L"wvbrowser_ui\\content_ui\\favorites.html"));
-        // Only the favorites UI can request favorites
         if (fileURI.compare(source.get()) == 0)
         {
             jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
@@ -743,7 +696,6 @@ HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, ICoreWebView2* web
     case MG_GET_SETTINGS:
     {
         std::wstring fileURI = GetFilePathAsURI(GetFullPathFor(L"wvbrowser_ui\\content_ui\\settings.html"));
-        // Only the settings UI can request settings
         if (fileURI.compare(source.get()) == 0)
         {
             jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
@@ -754,7 +706,6 @@ HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, ICoreWebView2* web
     case MG_CLEAR_CACHE:
     {
         std::wstring fileURI = GetFilePathAsURI(GetFullPathFor(L"wvbrowser_ui\\content_ui\\settings.html"));
-        // Only the settings UI can request cache clearing
         if (fileURI.compare(uri.get()) == 0)
         {
             jsonObj[L"args"][L"content"] = web::json::value::boolean(false);
@@ -777,7 +728,6 @@ HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, ICoreWebView2* web
     case MG_CLEAR_COOKIES:
     {
         std::wstring fileURI = GetFilePathAsURI(GetFullPathFor(L"wvbrowser_ui\\content_ui\\settings.html"));
-        // Only the settings UI can request cookies clearing
         if (fileURI.compare(uri.get()) == 0)
         {
             jsonObj[L"args"][L"content"] = web::json::value::boolean(false);
@@ -803,7 +753,6 @@ HRESULT BrowserWindow::HandleTabMessageReceived(size_t tabId, ICoreWebView2* web
     case MG_CLEAR_HISTORY:
     {
         std::wstring fileURI = GetFilePathAsURI(GetFullPathFor(L"wvbrowser_ui\\content_ui\\history.html"));
-        // Only the history UI can request history
         if (fileURI.compare(uri.get()) == 0)
         {
             jsonObj[L"args"][L"tabId"] = web::json::value::number(tabId);
@@ -864,7 +813,6 @@ HRESULT BrowserWindow::ResizeUIWebViews()
         RETURN_IF_FAILED(m_optionsController->put_Bounds(bounds));
     }
 
-    // Workaround for black controls WebView issue in Windows 7
     HWND wvWindow = GetWindow(m_hWnd, GW_CHILD);
     while (wvWindow != nullptr)
     {
@@ -910,9 +858,6 @@ void BrowserWindow::CheckFailure(HRESULT hr, LPCWSTR errorMessage)
 
 int BrowserWindow::GetDPIAwareBound(int bound)
 {
-    // Remove the GetDpiForWindow call when using Windows 7 or any version
-    // below 1607 (Windows 10). You will also have to make sure the build
-    // directory is clean before building again.
     return (bound * GetDpiForWindow(m_hWnd) / DEFAULT_DPI);
 }
 
