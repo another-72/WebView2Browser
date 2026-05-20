@@ -90,7 +90,7 @@ HRESULT Tab::Init(ICoreWebView2Environment* env, bool shouldBeActive)
 
 
         // --- NEW: Forcefully kill overscroll on every website loaded ---
-        RETURN_IF_FAILED(m_contentWebView->AddScriptToExecuteOnDocumentCreatedAsync(
+        RETURN_IF_FAILED(m_contentWebView->AddScriptToExecuteOnDocumentCreated(
             L"document.documentElement.style.overscrollBehavior = 'none';"
             L"document.body.style.overscrollBehavior = 'none';",
             nullptr
